@@ -213,13 +213,18 @@ uninstall() {
         fi
         return 0
     fi
-    systemctl stop x-ui
-    systemctl disable x-ui
-    rm /etc/systemd/system/x-ui.service -f
-    systemctl daemon-reload
-    systemctl reset-failed
-    rm /etc/x-ui/ -rf
-    rm /usr/local/x-ui/ -rf
+    # Dừng dịch vụ
+    sudo service x-ui stop
+    # Hoặc
+    sudo /etc/init.d/x-ui stop
+    
+    # Xóa tệp cấu hình dịch vụ
+    sudo rm -f /etc/init.d/x-ui
+    
+    # Xóa các thư mục và tệp liên quan
+    sudo rm -rf /etc/x-ui/
+    sudo rm -rf /usr/local/x-ui/
+
 
     echo ""
     echo -e "Uninstalled Successfully.\n"
@@ -270,8 +275,8 @@ reset_webbasepath() {
     
     # Apply the new web base path setting
     /usr/local/x-ui/x-ui setting -webBasePath "${config_webBasePath}" >/dev/null 2>&1
-    systemctl restart x-ui
-    
+    sudo service x-ui restart
+    sudo /etc/init.d/x-ui restart
     # Display confirmation message
     echo -e "Web base path has been reset to: ${green}${config_webBasePath}${plain}"
     echo -e "${green}Please use the new web base path to access the panel.${plain}"
@@ -317,7 +322,7 @@ start() {
         echo ""
         LOGI "Panel is running, No need to start again, If you need to restart, please select restart"
     else
-        systemctl start x-ui
+        sudo service x-ui start
         sleep 2
         check_status
         if [[ $? == 0 ]]; then
@@ -338,7 +343,7 @@ stop() {
         echo ""
         LOGI "Panel stopped, No need to stop again!"
     else
-        systemctl stop x-ui
+        sudo service x-ui stop
         sleep 2
         check_status
         if [[ $? == 1 ]]; then
@@ -354,7 +359,7 @@ stop() {
 }
 
 restart() {
-    systemctl restart x-ui
+    sudo service x-ui restart
     sleep 2
     check_status
     if [[ $? == 0 ]]; then
@@ -368,14 +373,14 @@ restart() {
 }
 
 status() {
-    systemctl status x-ui -l
+    sudo service x-ui status
     if [[ $# == 0 ]]; then
         before_show_menu
     fi
 }
 
 enable() {
-    systemctl enable x-ui
+    sudo service x-ui enable 
     if [[ $? == 0 ]]; then
         LOGI "x-ui Set to boot automatically on startup successfully"
     else
@@ -388,7 +393,7 @@ enable() {
 }
 
 disable() {
-    systemctl disable x-ui
+    sudo service x-ui disable 
     if [[ $? == 0 ]]; then
         LOGI "x-ui Autostart Cancelled successfully"
     else
@@ -514,24 +519,33 @@ update_shell() {
 }
 
 # 0: running, 1: not running, 2: not installed
+# Hàm kiểm tra trạng thái dịch vụ
 check_status() {
-    if [[ ! -f /etc/systemd/system/x-ui.service ]]; then
+    if [[ ! -f /etc/init.d/x-ui ]]; then
         return 2
     fi
-    temp=$(systemctl status x-ui | grep Active | awk '{print $3}' | cut -d "(" -f2 | cut -d ")" -f1)
-    if [[ "${temp}" == "running" ]]; then
+    
+    # Kiểm tra xem dịch vụ có đang chạy không
+    status_output=$(sudo service x-ui status)
+    if [[ "$status_output" == *"running"* ]]; then
         return 0
     else
         return 1
     fi
 }
 
+# Hàm kiểm tra xem dịch vụ có được kích hoạt không
 check_enabled() {
-    temp=$(systemctl is-enabled x-ui)
-    if [[ "${temp}" == "enabled" ]]; then
-        return 0
+    # Kiểm tra nếu script init.d tồn tại và đã được liên kết trong các runlevels
+    if [[ -f /etc/init.d/x-ui ]]; then
+        # Xem nếu script được liên kết với các runlevels mặc định
+        if [[ -n $(ls -l /etc/rc*.d/*x-ui 2>/dev/null) ]]; then
+            return 0
+        else
+            return 1
+        fi
     else
-        return 1
+        return 2
     fi
 }
 
@@ -741,7 +755,7 @@ update_geo() {
         mkdir -p ${binFolder}
     fi
 
-    systemctl stop x-ui
+    sudo service x-ui stop
     cd ${binFolder}
     rm -f geoip.dat geosite.dat geoip_IR.dat geosite_IR.dat geoip_VN.dat geosite_VN.dat
     wget -N https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat
@@ -750,7 +764,7 @@ update_geo() {
     wget -O geosite_IR.dat -N https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
     wget -O geoip_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
     wget -O geosite_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
-    systemctl start x-ui
+    sudo service x-ui start
     echo -e "${green}Geosite.dat + Geoip.dat + geoip_IR.dat + geosite_IR.dat have been updated successfully in bin folder '${binfolder}'!${plain}"
     before_show_menu
 }
