@@ -221,7 +221,7 @@ install_x-ui() {
     sudo chmod +x /usr/bin/x-ui
     
     # Tải về tệp và cấp quyền
-    sudo wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    sudo wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/dnminh2003/3x-ui/main/x-ui.sh
     sudo chmod +x /usr/bin/x-ui
     
     # Thực hiện cấu hình sau cài đặt
