@@ -1152,7 +1152,7 @@ iplimit_main() {
         read -rp "Please enter new Ban Duration in Minutes [default 30]: " NUM
         if [[ $NUM =~ ^[0-9]+$ ]]; then
             create_iplimit_jails ${NUM}
-            systemctl restart fail2ban
+            sudo service fail2ban restart
         else
             echo -e "${red}${NUM} is not a number! Please, try again.${plain}"
         fi
@@ -1177,7 +1177,7 @@ iplimit_main() {
         service fail2ban status
         ;;
     6)
-        systemctl restart fail2ban
+        sudo service fail2ban restart
         ;;
     7)
         remove_iplimit
@@ -1247,14 +1247,17 @@ install_iplimit() {
     # we didn't pass the bantime here to use the default value
     create_iplimit_jails
 
-    # Launching fail2ban
-    if ! systemctl is-active --quiet fail2ban; then
-        systemctl start fail2ban
-        systemctl enable fail2ban
+    # Kiểm tra và khởi động fail2ban
+    if ! sudo service fail2ban status | grep -q "running"; then
+        sudo service fail2ban start
+        sudo update-rc.d fail2ban defaults
     else
-        systemctl restart fail2ban
+        sudo service fail2ban restart
     fi
-    systemctl enable fail2ban
+    
+    # Đảm bảo dịch vụ tự động khởi động cùng hệ thống
+    sudo update-rc.d fail2ban defaults
+
 
     echo -e "${green}IP Limit installed and configured successfully!${plain}\n"
     before_show_menu
@@ -1270,13 +1273,13 @@ remove_iplimit() {
         rm -f /etc/fail2ban/filter.d/3x-ipl.conf
         rm -f /etc/fail2ban/action.d/3x-ipl.conf
         rm -f /etc/fail2ban/jail.d/3x-ipl.conf
-        systemctl restart fail2ban
+        sudo service fail2ban restart
         echo -e "${green}IP Limit removed successfully!${plain}\n"
         before_show_menu
         ;;
     2)
         rm -rf /etc/fail2ban
-        systemctl stop fail2ban
+        sudo service fail2ban stop
         case "${release}" in
         ubuntu | debian | armbian)
             apt-get remove -y fail2ban
