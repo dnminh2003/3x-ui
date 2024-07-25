@@ -1,15 +1,71 @@
-[Unit]
-Description=x-ui Service
-After=network.target
-Wants=network.target
+#!/bin/sh
+### BEGIN INIT INFO
+# Provides:          x-ui
+# Required-Start:    $network $local_fs $remote_fs
+# Required-Stop:     $network $local_fs $remote_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: Start/stop x-ui service
+### END INIT INFO
 
-[Service]
-Environment="XRAY_VMESS_AEAD_FORCED=false"
-Type=simple
-WorkingDirectory=/usr/local/x-ui/
-ExecStart=/usr/local/x-ui/x-ui
-Restart=on-failure
-RestartSec=5s
+# Đường dẫn đến tệp thực thi của dịch vụ
+EXEC_PATH="/usr/local/x-ui/x-ui"
+WORKING_DIR="/usr/local/x-ui"
+PIDFILE="/var/run/x-ui.pid"
 
-[Install]
-WantedBy=multi-user.target
+start() {
+    echo "Starting x-ui"
+    if [ -f $PIDFILE ]; then
+        echo "x-ui is already running"
+        return 0
+    fi
+    mkdir -p /var/run
+    cd $WORKING_DIR
+    nohup $EXEC_PATH > /var/log/x-ui.log 2>&1 &
+    echo $! > $PIDFILE
+}
+
+stop() {
+    echo "Stopping x-ui"
+    if [ ! -f $PIDFILE ]; then
+        echo "x-ui is not running"
+        return 0
+    fi
+    kill $(cat $PIDFILE)
+    rm -f $PIDFILE
+}
+
+restart() {
+    echo "Restarting x-ui"
+    stop
+    start
+}
+
+status() {
+    if [ -f $PIDFILE ]; then
+        echo "x-ui is running"
+    else
+        echo "x-ui is not running"
+    fi
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        status
+        ;;
+    *)
+        echo "Usage: $0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+exit 0
