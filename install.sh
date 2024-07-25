@@ -195,7 +195,7 @@ install_x-ui() {
     fi
 
     if [[ -e /usr/local/x-ui/ ]]; then
-        systemctl stop x-ui
+        sudo service x-ui stop
         rm /usr/local/x-ui/ -rf
     fi
 
@@ -210,16 +210,30 @@ install_x-ui() {
         chmod +x bin/xray-linux-arm
     fi
 
+    # Cấp quyền cho các tệp
     chmod +x x-ui bin/xray-linux-$(arch)
-    cp -f x-ui.service /etc/systemd/system/
-    wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
-    chmod +x /usr/local/x-ui/x-ui.sh
-    chmod +x /usr/bin/x-ui
+    
+    # Tạo thư mục cần thiết và sao chép tệp
+    sudo mkdir -p /usr/local/x-ui
+    sudo cp -f x-ui /usr/local/x-ui/x-ui.sh
+    sudo chmod +x /usr/local/x-ui/x-ui.sh
+    sudo cp -f x-ui.service /etc/init.d/x-ui
+    sudo chmod +x /usr/bin/x-ui
+    
+    # Tải về tệp và cấp quyền
+    sudo wget --no-check-certificate -O /usr/bin/x-ui https://raw.githubusercontent.com/MHSanaei/3x-ui/main/x-ui.sh
+    sudo chmod +x /usr/bin/x-ui
+    
+    # Thực hiện cấu hình sau cài đặt
     config_after_install
+    
+    # Tạo liên kết tượng trưng và khởi động dịch vụ
+    sudo ln -s /etc/init.d/x-ui /etc/rc.d/
+    sudo service x-ui start
+    
+    # Thiết lập dịch vụ khởi động cùng hệ thống
+    sudo update-rc.d x-ui defaults
 
-    systemctl daemon-reload
-    systemctl enable x-ui
-    systemctl start x-ui
     echo -e "${green}x-ui ${last_version}${plain} installation finished, it is running now..."
     echo -e ""
     echo -e "x-ui control menu usages: "
